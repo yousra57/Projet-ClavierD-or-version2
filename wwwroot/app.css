@@ -1,0 +1,479 @@
+/*  VARIABLES   */
+:root {
+    --jaune: #FFD700;
+    --jaune-fonce: #FFA500;
+    --orange: #FF6B35;
+    --orange-fonce: #e55520;
+    --violet: #6C3FBF;
+    --violet-fonce: #4a2a8a;
+    --violet-clair: rgba(108, 63, 191, 0.15);
+    --fond-fonce: #1a0a2e;
+    --fond-moyen: #2d1052;
+    --fond-card: #3a1a6e;
+    --texte-clair: #fff8f0;
+    --texte-gris: #c9b8e8;
+    --vert: #4CAF50;
+    --rouge: #ef4444;
+}
+
+/* 
+   BASE — écrase Bootstrap et Blazor*/
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    font-family: 'Segoe UI', sans-serif !important;
+    background: linear-gradient(135deg, #1a0a2e 0%, #2d1052 50%, #1a0a2e 100%) !important;
+    min-height: 100vh;
+    color: #fff8f0 !important;
+}
+
+a, .btn-link {
+    color: var(--jaune);
+}
+
+h1:focus {
+    outline: none;
+}
+
+/*    BLAZOR — messages d'erreur  */
+.blazor-error-boundary {
+    background: #b32121;
+    padding: 1rem 1rem 1rem 3.7rem;
+    color: white;
+}
+
+.blazor-error-boundary::after {
+    content: "An error has occurred."
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #4CAF50;
+}
+
+.invalid {
+    outline: 1px solid #e50000;
+}
+
+.validation-message {
+    color: #e50000;
+}
+
+/*  CONTENEUR PRINCIPAL  */
+.accueil-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.accueil-container h1 {
+    text-align: center;
+    font-size: 2.5rem;
+    color: var(--jaune);
+    text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    margin-bottom: 0.5rem;
+}
+
+.sous-titre {
+    text-align: center;
+    color: var(--texte-gris);
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+
+/*  CARTES */
+.card {
+    background: linear-gradient(135deg, #3a1a6e, #2d1052) !important;
+    border: 1px solid rgba(255, 165, 0, 0.3) !important;
+    border-radius: 16px !important;
+    padding: 1.5rem !important;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 24px rgba(108, 63, 191, 0.3) !important;
+    color: var(--texte-clair) !important;
+}
+
+.card h2 {
+    color: var(--jaune);
+    margin-bottom: 1rem;
+}
+
+/*  GRILLE CATÉGORIES  */
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.2rem;
+    margin-top: 1rem;
+}
+
+.categorie-card {
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    text-align: center;
+    border: 2px solid rgba(255, 165, 0, 0.2) !important;
+    background: linear-gradient(135deg, #4a2a8a, #3a1a6e) !important;
+}
+
+.categorie-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--jaune-fonce) !important;
+    box-shadow: 0 8px 32px rgba(255, 165, 0, 0.35) !important;
+}
+
+.categorie-card h2 {
+    color: var(--jaune);
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+}
+
+.categorie-card p {
+    color: var(--texte-gris);
+    font-size: 0.95rem;
+}
+
+/*  BADGES  */
+.badge {
+    display: inline-block !important;
+    background: rgba(255, 215, 0, 0.15) !important;
+    color: var(--jaune) !important;
+    border: 1px solid var(--jaune) !important;
+    border-radius: 20px !important;
+    padding: 0.3rem 0.9rem !important;
+    font-size: 0.8rem !important;
+    margin-top: 0.8rem;
+}
+
+.badge-facile {
+    display: inline-block;
+    background: rgba(76, 175, 80, 0.15);
+    color: #4CAF50;
+    border: 1px solid #4CAF50;
+    border-radius: 20px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.85rem;
+}
+
+.badge-moyen {
+    display: inline-block;
+    background: rgba(255, 165, 0, 0.15);
+    color: var(--jaune-fonce);
+    border: 1px solid var(--jaune-fonce);
+    border-radius: 20px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.85rem;
+}
+
+.badge-boss {
+    display: inline-block;
+    background: rgba(255, 107, 53, 0.15);
+    color: var(--orange);
+    border: 1px solid var(--orange);
+    border-radius: 20px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.85rem;
+}
+
+/* BOUTONS  */
+.btn-primary {
+    background: linear-gradient(135deg, var(--jaune-fonce), var(--orange)) !important;
+    color: #1a0a2e !important;
+    font-weight: 700 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 0.8rem 2rem !important;
+    font-size: 1rem;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 1rem;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.btn-primary:hover {
+    opacity: 0.9 !important;
+    transform: translateY(-2px);
+    color: #1a0a2e !important;
+}
+
+.btn-primary:focus,
+.btn-primary:active {
+    background: linear-gradient(135deg, var(--jaune-fonce), var(--orange)) !important;
+    color: #1a0a2e !important;
+    box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.4) !important;
+}
+
+.btn-secondary {
+    background: transparent !important;
+    color: var(--jaune) !important;
+    font-weight: 600;
+    border: 2px solid var(--jaune) !important;
+    border-radius: 10px !important;
+    padding: 0.8rem 2rem;
+    font-size: 1rem;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 1rem;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 215, 0, 0.1) !important;
+    transform: translateY(-2px);
+}
+
+.btn-joker {
+    background: rgba(108, 63, 191, 0.2);
+    color: var(--jaune);
+    border: 1px solid var(--jaune-fonce);
+    border-radius: 10px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin: 0.3rem;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.btn-joker:hover:not(:disabled) {
+    background: rgba(255, 165, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+.btn-joker:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/*  FORMULAIRE  */
+.champ {
+    margin-bottom: 1rem;
+}
+
+.champ label {
+    display: block;
+    color: var(--texte-gris);
+    margin-bottom: 0.4rem;
+    font-size: 0.95rem;
+}
+
+.champ input, .champ select {
+    width: 100%;
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255, 165, 0, 0.4) !important;
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    color: var(--texte-clair) !important;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.champ input:focus, .champ select:focus {
+    outline: none !important;
+    border-color: var(--jaune) !important;
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2) !important;
+}
+
+.champ select option {
+    background: var(--fond-moyen);
+    color: var(--texte-clair);
+}
+
+/* FEEDBACK RÉPONSES   */
+.succes {
+    color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid #4CAF50;
+    border-radius: 8px;
+    padding: 0.8rem;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.erreur {
+    color: var(--rouge);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--rouge);
+    border-radius: 8px;
+    padding: 0.8rem;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+/* =TIMER  */
+.timer-container {
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    height: 14px;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.timer-barre {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 1s linear, background-color 1s;
+}
+
+.timer-texte {
+    position: absolute;
+    right: 10px;
+    top: -2px;
+    font-size: 0.8rem;
+    color: var(--texte-gris);
+}
+
+/* EN-TÊTE QUIZ   */
+.info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+}
+
+.info-header span {
+    color: var(--texte-gris);
+    font-size: 0.95rem;
+}
+
+.info-header strong {
+    color: var(--texte-clair);
+}
+
+.info-role {
+    border-left: 4px solid var(--jaune-fonce) !important;
+    background: rgba(255, 165, 0, 0.08) !important;
+}
+
+/* JOKERS */
+.jokers-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+/*  TABLEAU HISTORIQUE */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+th {
+    color: var(--jaune);
+    text-align: left;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+    font-size: 0.9rem;
+}
+
+td {
+    padding: 0.6rem 1rem;
+    color: var(--texte-gris);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.9rem;
+}
+
+tr:hover td {
+    color: var(--texte-clair);
+    background: rgba(255, 165, 0, 0.05);
+}
+
+/* 
+   QUESTION CARD */
+.question-card h2 {
+    color: var(--texte-clair);
+    font-size: 1.3rem;
+    line-height: 1.6;
+    margin-bottom: 1.2rem;
+}
+
+/* PAGE RÉSULTATS */
+.score-cercle {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 1.5rem auto;
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.4);
+}
+
+.score-nombre {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1a0a2e;
+    line-height: 1;
+}
+
+.score-label {
+    font-size: 0.85rem;
+    color: #1a0a2e;
+    font-weight: 600;
+}
+
+.barre-reussite-container {
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    height: 16px;
+    margin: 1rem 0 0.5rem;
+    overflow: hidden;
+}
+
+.barre-reussite {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 1.5s ease;
+}
+
+/* QCM — Boutons de choix*/
+.qcm-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-top: 1.5rem;
+}
+
+.btn-qcm {
+    background: rgba(108, 63, 191, 0.15);
+    color: var(--texte-clair);
+    border: 2px solid rgba(108, 63, 191, 0.4);
+    border-radius: 10px;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s, border-color 0.2s, transform 0.1s;
+    width: 100%;
+}
+
+.btn-qcm:hover:not(:disabled) {
+    background: rgba(108, 63, 191, 0.35);
+    border-color: var(--violet);
+    transform: translateX(6px);
+}
+
+/* Bouton correct — vert après validation */
+.btn-qcm-correct {
+    background: rgba(76, 175, 80, 0.2) !important;
+    border-color: #4CAF50 !important;
+    color: #4CAF50 !important;
+    font-weight: 700;
+}
+
+/* Bouton incorrect — rouge si mauvais choix */
+.btn-qcm-incorrect {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: var(--rouge) !important;
+    color: var(--rouge) !important;
+}
+
+/* Boutons neutres — grisés après validation */
+.btn-qcm-neutre {
+    opacity: 0.4;
+}

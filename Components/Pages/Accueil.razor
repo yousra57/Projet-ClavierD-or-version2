@@ -1,0 +1,160 @@
+@page "/"
+@rendermode InteractiveServer
+@inject JoueurService JoueurService
+@inject JeuService JeuService
+@inject NavigationManager Navigation
+@using Projet_ClavierDor.Services
+@using Projet_ClavierDor.Models
+
+
+<div class="accueil-container">
+
+    <h1>Clavier d'Or ⌨️​🏆</h1>
+    <p class="sous-titre">Le quiz des développeurs ! 👩🏻‍💻​</p>
+
+    @if (!partieEnCours)
+    {
+        <!-- Formulaire de connexion -->
+        <div class="card">
+            <h2>Bienvenue ! 🦜​ ​</h2>
+
+            <div class="champ">
+                <label>Ton pseudo :</label>
+                <input @bind="pseudo" placeholder="Entre ton pseudo..." />
+            </div>
+            <br/>
+            <div class="champ">
+                <label>Ton email :</label>
+                <input @bind="email" type="email" placeholder="Entre ton email..." />
+            </div>
+            <br/>
+            <div class="champ">
+                <label>Choisis ton rôle :</label>
+                <select @bind="roleChoisi">
+                    <option value="">-- Choisir un rôle --</option>
+                    <option value="Front">Développeur Front 🎨</option>
+                    <option value="Back">Développeur Back ⚙️</option>
+                    <option value="Mobile">Développeur Mobile 📱</option>
+                </select>
+            </div>
+
+            @if (!string.IsNullOrEmpty(messageErreur))
+            {
+                <p class="erreur">@messageErreur</p>
+            }
+            <br/>
+            <button class="btn-primary" @onclick="CommencerPartie">
+                Commencer la partie 🎮​🚀
+            </button>
+            <br/>
+            <button class="btn-secondary" @onclick="VoirHistorique">
+                 Voir mon historique 📑​🎳​
+            </button>
+        </div>
+
+        <!-- Historique si joueur connu -->
+        @if (historique.Any())
+        {
+            <div class="card">
+                <h2>Tes dernières parties 📜</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Score</th>
+                            <th>Etat</th>
+                            <th>Rôle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var partie in historique)
+                        {
+                            <tr>
+                                <td>@partie.DateDebut.ToString("dd/MM/yyyy")</td>
+                                <td>@partie.Score pts</td>
+                                <td>@partie.Etat</td>
+                                <td>@partie.Role</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    // Variables liées aux champs du formulaire
+    private string pseudo = string.Empty;
+    private string email = string.Empty;
+    private string roleChoisi = string.Empty;
+    private string messageErreur = string.Empty;
+
+    // Historique des parties du joueur
+    private List<Partie> historique = new();
+
+    // Indique si une partie est déjà en cours
+    private bool partieEnCours = false;
+
+    // METHODE appelée quand le joueur tape son pseudo
+    // Elle charge automatiquement son historique
+    private async Task ChargerHistorique()
+    {
+        if (!string.IsNullOrEmpty(pseudo))
+        {
+            var joueur = await JoueurService.TrouverJoueurAsync(pseudo);
+            if (joueur != null)
+            {
+                historique = await JoueurService.GetHistoriqueAsync(joueur.Id);
+            }
+        }
+    }
+    // METHODE appelée quand le joueur clique sur "Voir mon historique"
+    // Redirige vers la page historique du joueur
+    private async Task VoirHistorique()
+    {
+        if (string.IsNullOrEmpty(pseudo))
+        {
+            messageErreur = "Entre ton pseudo pour voir ton historique ! 📑​";
+            return;
+        }
+
+        var joueur = await JoueurService.TrouverJoueurAsync(pseudo);
+        if (joueur == null)
+        {
+            messageErreur = "Aucun joueur trouvé avec ce pseudo...";
+            return;
+        }
+
+        Navigation.NavigateTo($"/historique/{joueur.Id}");
+    }
+
+    // METHODE principale appelée quand le joueur clique sur "Commencer"
+    private async Task CommencerPartie()
+    {
+        // Validation des champs
+        if (string.IsNullOrEmpty(pseudo) || string.IsNullOrEmpty(roleChoisi))
+        {
+            messageErreur = "Merci de remplir ton pseudo et de choisir un rôle ⚠️​";
+            return;
+        }
+
+        // On cherche si le joueur existe déjà, sinon on le crée
+        var joueur = await JoueurService.TrouverJoueurAsync(pseudo);
+        if (joueur == null)
+        {
+            joueur = await JoueurService.CreerJoueurAsync(pseudo, email);
+        }
+        // Pour pouvoir revenir à l'accueil plus tard sans perdre l'historique
+        var joueurId = joueur.Id; // On stocke l'ID du joueur pour l'historique'
+
+
+
+
+        // On crée une nouvelle partie avec le rôle choisi
+        var partie = await JeuService.CreerPartieAsync(joueur.Id, roleChoisi);
+
+        // On redirige vers la page de sélection de catégorie
+        Navigation.NavigateTo($"/categories/{partie.Id}/{roleChoisi}");
+    }
+}

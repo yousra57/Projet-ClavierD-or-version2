@@ -1,0 +1,195 @@
+@page "/resultats/{PartieId:int}"
+@rendermode InteractiveServer
+@inject ScoreService ScoreService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject PdfService PdfService
+@using Projet_ClavierDor.Services
+@using Projet_ClavierDor.Models
+
+<div class="accueil-container">
+
+    @if (partie == null) // Si les données ne sont pas encore chargées
+    {
+        <p>Patiente ! ça vient...⌛​</p>
+    }
+    else
+    {
+        //En-tête résultats 
+        <div class="card" style="text-align: center;">
+            <h1>@GetTitreResultat()</h1>
+            <p class="sous-titre">@GetMessageResultat()</p>
+
+            <!-- Cercle score -->
+            <div class="score-cercle">
+                <span class="score-nombre">@partie.Score</span>
+                <span class="score-label">points</span>
+            </div>
+
+            <!-- Pourcentage réussite -->
+            <div class="barre-reussite-container">
+                <div class="barre-reussite"
+                     style="width: @pourcentage%;
+                            background: @GetCouleurScore();">
+                </div>
+            </div>
+            <p style="color: var(--texte-gris); margin-top: 0.5rem;">
+                @pourcentage% de bonnes réponses
+            </p>
+
+            <!-- Infos partie -->
+            <div class="info-header" style="margin-top: 1rem;">
+                <span>Joueur : <strong>@partie.Joueur?.Pseudo</strong></span>
+                <span>Rôle : <strong>@partie.Role</strong></span>
+                <span>Date : <strong>@partie.DateDebut.ToString("dd/MM/yyyy")</strong></span>
+            </div>
+        </div>
+
+        <!-- Détail des réponses -->
+        <div class="card">
+            <h2>Détail de tes réponses 🖋️​</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Question</th>
+                        <th>Ta réponse</th>
+                        <th>Bonne réponse</th>
+                        <th>Résultat</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var reponse in partie.Reponses)
+                    {
+                        <tr>
+                            <td>@reponse.Question?.Texte</td>
+                            <td>@reponse.ReponseDonnee</td>
+                            <td>@reponse.Question?.BonneReponse</td>
+                            <td>
+                                @if (reponse.EstCorrecte)
+                                {
+                                    <span class="badge-facile">✅ Correct</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-boss">❌ Incorrect</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Boutons actions -->
+        <div class="card" style="text-align: center;">
+            <h2>Que veux-tu faire ? 🤔​</h2>
+
+            <button class="btn-primary" @onclick="ExporterPdf">
+                📄 Exporter mes résultats en PDF
+            </button>
+
+            <button class="btn-secondary" @onclick="RetourAccueil">
+                 Retour à l'accueil 🏠
+            </button>
+
+            @if (!string.IsNullOrEmpty(messagePdf))
+            {
+                <p class="@classePdf" style="margin-top: 1rem;">
+                    @messagePdf
+                </p>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    // Paramètre reçu depuis l'URL
+    [Parameter] public int PartieId { get; set; }
+
+    // Données de la partie récupérées depuis la base
+    private Partie? partie;
+
+    // Pourcentage de bonnes réponses
+    private double pourcentage;
+
+    // message affiché après export PDF
+    private string messagePdf = string.Empty;
+    private string classePdf = string.Empty;
+
+    // chargement des données au démarrage de la page
+    protected override async Task OnInitializedAsync()
+    {
+        // On récupère le résumé complet de la partie
+        partie = await ScoreService.GetResumPartieAsync(PartieId);
+
+        // On calcule le pourcentage de bonnes réponses
+        pourcentage = await ScoreService.GetPourcentageReussiteAsync(PartieId);
+    }
+
+    // retourne le titre selon le score obtenu
+    private string GetTitreResultat()
+    {
+        return pourcentage switch
+        {
+            >= 80 => "🏆 Clavier d'Or 🏆!",
+            >= 60 => "🎉 Bien joué 🎉!",
+            >= 40 => "🔥 Pas mal 🔥!",
+            _ => "💪Ne baisse pas les bras 💪!"
+        };
+    }
+
+    // retourne un message selon le score
+    private string GetMessageResultat()
+    {
+        return pourcentage switch
+        {
+            >= 80 => "Félicitations, tu es un développeur très compétent 🥳​!",
+            >= 60 => "Belle performance, tu maîtrises bien le sujet 👏​!",
+            >= 40 => "Tu progresses, continue comme ça ! 🔥​",
+            _ => "Ne lâche pas, la prochaine sera la bonne ! N'hésite pas à retenter ta chance 💪​😊​!"
+        };
+    }
+
+    // retourne la couleur de la barre selon le score
+    private string GetCouleurScore()
+    {
+        return pourcentage switch
+        {
+            >= 80 => "linear-gradient(135deg, #FFD700, #FFA500)",
+            >= 60 => "linear-gradient(135deg, #4CAF50, #2e7d32)",
+            >= 40 => "linear-gradient(135deg, #FFA500, #FF6B35)",
+            _ => "linear-gradient(135deg, #ef4444, #b32121)"
+        };
+    }
+
+    // Génère un PDF récapitulatif de la partie et propose le téléchargement
+    private async Task ExporterPdf()
+{
+    try
+    {
+        // Génération du PDF en mémoire
+        var pdfBytes = PdfService.GenererPdf(partie!);
+
+        // Encodage en base64 pour le transfert
+        var base64 = Convert.ToBase64String(pdfBytes);
+        var fileName = $"resultats_{partie!.Joueur?.Pseudo}_{partie.DateDebut:yyyyMMdd}.pdf";
+
+        // Téléchargement via JavaScript
+        await JS.InvokeVoidAsync("downloadFileFromBase64", base64, fileName);
+
+        messagePdf = "PDF téléchargé avec succès ✅ !";
+        classePdf = "succes";
+    }
+    catch (Exception ex)
+    {
+        messagePdf = $"Erreur : {ex.Message} ❌";
+        classePdf = "erreur";
+    }
+}
+
+    // Retourne à la page d'accueil
+    private void RetourAccueil()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

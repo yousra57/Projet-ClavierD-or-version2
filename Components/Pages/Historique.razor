@@ -1,0 +1,118 @@
+@page "/historique/{JoueurId:int}"
+@rendermode InteractiveServer
+@inject ScoreService ScoreService
+@inject JoueurService JoueurService
+@inject NavigationManager Navigation
+@using Projet_ClavierDor.Services
+@using Projet_ClavierDor.Models
+
+<div class="accueil-container">
+
+    <h1>📜 Historique des parties 📜</h1>
+    <p class="sous-titre">Toutes tes aventures sur le Clavier d'Or !</p>
+
+    @if (joueur != null)
+    {
+        <div class="card info-header">
+            <span>Joueur : <strong>@joueur.Pseudo</strong></span>
+            <span>Meilleur score : <strong>@meilleurScore pts</strong></span>
+            <span>Parties jouées : <strong>@parties.Count</strong></span>
+        </div>
+    }
+
+    @if (parties.Any())
+    {
+        <div class="card">
+            <h2> Tes parties ​🎳​</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Rôle</th>
+                        <th>Score</th>
+                        <th>État</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var partie in parties)
+                    {
+                        <tr>
+                            <td>@partie.DateDebut.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@partie.Role</td>
+                            <td>@partie.Score pts</td>
+                            <td>
+                                @if (partie.Etat == "Terminée")
+                                {
+                                    <span class="badge-facile">✅ Terminée</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-moyen">⏳ En cours</span>
+                                }
+                            </td>
+                            <td>
+                                @if (partie.Etat == "Terminée")
+                                {
+                                    <button class="btn-joker"
+                                            @onclick="() => VoirResultats(partie.Id)">
+                                        📊 Résultats
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="card" style="text-align: center;">
+            <p>Tu n'as pas encore joué de partie. Lance-toi ! 🚀</p>
+        </div>
+    }
+
+    <button class="btn-secondary" @onclick="RetourAccueil">
+        🏠 Retour à l'accueil
+    </button>
+
+</div>
+
+@code {
+    [Parameter] public int JoueurId { get; set; }
+
+    // Données du joueur connecté
+    private Joueur? joueur;
+
+    // Liste des parties du joueur
+    private List<Partie> parties = new();
+
+    // Meilleur score du joueur
+    private int meilleurScore = 0;
+
+    // Chargement des données au démarrage
+    protected override async Task OnInitializedAsync()
+    {
+        // Récupère les infos du joueur
+        joueur = await JoueurService.GetJoueurParIdAsync(JoueurId);
+
+        // Récupère l'historique des parties
+        parties = await JoueurService.GetHistoriqueAsync(JoueurId);
+
+        // Récupère le meilleur score
+        meilleurScore = await ScoreService.GetMeilleurScoreAsync(JoueurId);
+    }
+
+    // Redirige vers les résultats d'une partie terminée
+    private void VoirResultats(int partieId)
+    {
+        Navigation.NavigateTo($"/resultats/{partieId}");
+    }
+
+    // Retourne à la page d'accueil
+    private void RetourAccueil()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

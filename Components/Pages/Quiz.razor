@@ -1,0 +1,428 @@
+@page "/quiz/{PartieId:int}/{CategorieId:int}/{Role}"
+@rendermode InteractiveServer
+@inject JeuService JeuService
+@inject ScoreService ScoreService
+@inject NavigationManager Navigation
+@using Projet_ClavierDor.Services
+@using Projet_ClavierDor.Models
+@implements IDisposable
+
+<div class="accueil-container">
+
+    @if (partieTerminee)
+    {
+        <div class="card" style="text-align: center;">
+            <h1>Partie terminée ! 🎉</h1>
+            <p class="sous-titre">Score final : <strong>@scoreActuel points</strong></p>
+            <button class="btn-primary" @onclick="VoirResultats">
+                Voir mes résultats 📊
+            </button>
+        </div>
+    }
+    else if (chargementTermine && questions.Count > 0)
+    {
+        <div class="card info-header">
+            <span>Rôle : <strong>@Role</strong></span>
+            <span>Score : <strong>@scoreActuel pts</strong></span>
+            <span>Question : <strong>@(indexQuestion + 1)/@questions.Count</strong></span>
+            <span class="@GetBadgeDifficulte()">@niveauActuel</span>
+        </div>
+
+        <div class="timer-container">
+            <div class="timer-barre"
+                 style="width: @timerPourcentage%;
+                        background-color: @GetCouleurTimer();">
+            </div>
+            <span class="timer-texte">@timerSecondes sec</span>
+        </div>
+
+        <div class="card question-card">
+            <h2>@questions[indexQuestion].Texte</h2>
+
+            @if (!string.IsNullOrEmpty(indiceAffiche))
+            {
+                <div class="card info-role" style="margin-bottom: 1rem;">
+                    <p>💡 Indice 🃏​ : @indiceAffiche</p>
+                </div>
+            }
+
+            <div class="qcm-container">
+                @foreach (var choix in choixMelanges)
+                {
+                    var choixLocal = choix;
+                    <button class="@GetClasseBoutonQcm(choixLocal)"
+                            @onclick="() => ChoisirReponse(choixLocal)"
+                            disabled="@reponseValidee">
+                        @choixLocal
+                    </button>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(messageFeedback))
+            {
+                <p class="@classeFeedback" style="margin-top: 1rem;">
+                    @messageFeedback
+                </p>
+            }
+        </div>
+
+        <div class="jokers-container">
+            @if (Role == "Front")
+            {
+                <button class="btn-joker"
+                        @onclick="UtiliserJokerChangerQuestion"
+                        disabled="@(jokerUtilise || reponseValidee)">
+                    🔄 Changer la question 🃏 ​ @(jokerUtilise ? "(utilisé)" : "")
+                </button>
+            }
+            @if (Role == "Back")
+            {
+                <button class="btn-joker"
+                        @onclick="UtiliserJokerRattrapage"
+                        disabled="@(jokerUtilise || !reponseValidee || dernierReponseCorrecte)">
+                    🔁 Rattrapage 🃏​  @(jokerUtilise ? "(utilisé)" : "")
+                </button>
+            }
+            @if (Role == "Mobile")
+            {
+                <button class="btn-joker"
+                        @onclick="UtiliserJokerIndice"
+                        disabled="@(jokerUtilise || reponseValidee)">
+                    💡 Indice 🃏​  @(jokerUtilise ? "(utilisé)" : "")
+                </button>
+            }
+        </div>
+
+        @if (reponseValidee)
+        {
+            <button class="btn-secondary" @onclick="QuestionSuivante">
+                Question suivante ➡️
+            </button>
+        }
+    }
+    else if (chargementTermine && questions.Count == 0)
+    {
+        <div class="card">
+            <p>Aucune question trouvée pour cette catégorie.</p>
+            <button class="btn-secondary" @onclick="RetourCategories">
+                Retour aux catégories
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="card" style="text-align: center;">
+            <p>⌛ Chargement des questions...</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int PartieId { get; set; }
+    [Parameter] public int CategorieId { get; set; }
+    [Parameter] public string Role { get; set; } = string.Empty;
+
+    // Liste des questions chargées depuis la base
+    private List<Question> questions = new();
+
+    // Index de la question actuelle
+    private int indexQuestion = 0;
+
+    // Choix QCM mélangés pour la question actuelle
+    private List<string> choixMelanges = new();
+
+    // Réponse choisie par le joueur
+    private string reponseChoisie = string.Empty;
+
+    // Score affiché en temps réel
+    private int scoreActuel = 0;
+
+    // États du jeu
+    private bool reponseValidee = false;
+    private bool dernierReponseCorrecte = false;
+    private bool jokerUtilise = false;
+    private bool partieTerminee = false;
+    private bool chargementTermine = false;
+
+    // Feedback après réponse
+    private string messageFeedback = string.Empty;
+    private string classeFeedback = string.Empty;
+
+    // Indice joker Mobile
+    private string indiceAffiche = string.Empty;
+
+    // Niveau affiché
+    private string niveauActuel = "Facile";
+
+    // Timer
+    private int timerTotal = 30;
+    private int timerSecondes = 30;
+    private double timerPourcentage = 100;
+    private System.Threading.Timer? timer;
+    private bool timerActif = false;
+
+    // =============================================
+    // CHARGEMENT INITIAL
+    // =============================================
+    protected override async Task OnInitializedAsync()
+    {
+        // Chargement des questions dans l'ordre de difficulté
+        var faciles = await JeuService.GetQuestionsAsync(CategorieId, "Facile");
+        var moyennes = await JeuService.GetQuestionsAsync(CategorieId, "Moyen");
+        var boss = await JeuService.GetQuestionsAsync(CategorieId, "Boss");
+
+        questions.AddRange(faciles);
+        questions.AddRange(moyennes);
+        questions.AddRange(boss);
+
+        // Score et joker initiaux
+        scoreActuel = await ScoreService.GetScoreAsync(PartieId);
+        jokerUtilise = await JeuService.JokerDejaUtiliseAsync(PartieId, GetTypeJoker());
+
+        // Mélange des choix pour la première question
+        if (questions.Count > 0)
+        {
+            niveauActuel = questions[0].Difficulte;
+            MelangerChoix();
+        }
+
+        chargementTermine = true;
+    }
+
+    // Démarrage du timer après le premier rendu
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (questions.Count > 0 && !timerActif)
+        {
+            timerActif = true;
+            DemarrerTimer();
+        }
+    }
+
+    // =============================================
+    // MÉLANGE DES CHOIX QCM
+    // =============================================
+    private void MelangerChoix()
+    {
+        if (indexQuestion >= questions.Count) return;
+
+        var q = questions[indexQuestion];
+        choixMelanges = new List<string>
+        {
+            q.BonneReponse,
+            q.FausseReponse1,
+            q.FausseReponse2
+        }
+        .OrderBy(_ => Guid.NewGuid())
+        .ToList();
+    }
+
+    // =============================================
+    // TIMER
+    // =============================================
+    private void DemarrerTimer()
+    {
+        timer?.Dispose();
+        timer = null;
+
+        timerSecondes = timerTotal;
+        timerPourcentage = 100;
+
+        timer = new System.Threading.Timer(async _ =>
+        {
+            if (reponseValidee || partieTerminee) return;
+
+            timerSecondes--;
+            timerPourcentage = (double)timerSecondes / timerTotal * 100;
+
+            if (timerSecondes <= 0)
+            {
+                timer?.Dispose();
+                timer = null;
+
+                await InvokeAsync(async () =>
+                {
+                    if (!reponseValidee)
+                    {
+                        messageFeedback = "Temps écoulé ! ⏱️";
+                        classeFeedback = "erreur";
+                        reponseValidee = true;
+                        StateHasChanged();
+                        await Task.Delay(2000);
+                        await QuestionSuivante();
+                    }
+                });
+                return;
+            }
+
+            await InvokeAsync(StateHasChanged);
+
+        }, null, 1000, 1000);
+    }
+
+    private string GetCouleurTimer()
+    {
+        if (timerPourcentage > 50) return "#4CAF50";
+        if (timerPourcentage > 25) return "#FFA500";
+        return "#ef4444";
+    }
+
+    // =============================================
+    // CHOIX DE LA RÉPONSE
+    // =============================================
+    private async Task ChoisirReponse(string choix)
+    {
+        if (reponseValidee) return;
+
+        // Arrêt du timer
+        timer?.Dispose();
+        timer = null;
+
+        reponseChoisie = choix;
+
+        // Enregistrement de la réponse
+        bool estCorrecte = await JeuService.EnregistrerReponseAsync(
+            PartieId,
+            questions[indexQuestion].Id,
+            choix
+        );
+
+        dernierReponseCorrecte = estCorrecte;
+        reponseValidee = true;
+        scoreActuel = await ScoreService.GetScoreAsync(PartieId);
+
+        if (estCorrecte)
+        {
+            messageFeedback = $"Bravo ! +{questions[indexQuestion].Points} point(s) ✅";
+            classeFeedback = "succes";
+        }
+        else
+        {
+            messageFeedback = $"Mauvaise réponse ❌ La bonne réponse était : {questions[indexQuestion].BonneReponse}";
+            classeFeedback = "erreur";
+        }
+    }
+
+    // =============================================
+    // NAVIGATION
+    // =============================================
+    private async Task QuestionSuivante()
+    {
+        reponseChoisie = string.Empty;
+        messageFeedback = string.Empty;
+        indiceAffiche = string.Empty;
+        reponseValidee = false;
+        indexQuestion++;
+
+        if (indexQuestion < questions.Count)
+        {
+            niveauActuel = questions[indexQuestion].Difficulte;
+            MelangerChoix();
+            DemarrerTimer();
+        }
+        else
+        {
+            timer?.Dispose();
+            timer = null;
+            timerActif = false;
+
+            try { await JeuService.TerminerPartieAsync(PartieId); } catch { }
+
+            partieTerminee = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void VoirResultats()
+    {
+        Navigation.NavigateTo($"/resultats/{PartieId}");
+    }
+
+// Retour à la page de sélection de catégorie
+    private void RetourCategories()
+    {
+    Navigation.NavigateTo($"/categories/{PartieId}/{Role}");
+    }
+
+    // =============================================
+    // JOKERS
+    // =============================================
+    private string GetTypeJoker() => Role switch
+    {
+        "Front" => "ChangerQuestion",
+        "Back" => "Rattrapage",
+        "Mobile" => "Indice",
+        _ => string.Empty
+    };
+
+    private async Task UtiliserJokerChangerQuestion()
+    {
+        bool ok = await JeuService.UtiliserJokerAsync(PartieId, "ChangerQuestion");
+        if (!ok) return;
+
+        var autres = await JeuService.GetQuestionsAsync(CategorieId, questions[indexQuestion].Difficulte);
+        var nouvelle = autres.FirstOrDefault(q => q.Id != questions[indexQuestion].Id);
+
+        if (nouvelle != null)
+        {
+            questions[indexQuestion] = nouvelle;
+            MelangerChoix();
+            messageFeedback = "Question changée ! 🔄";
+            classeFeedback = "succes";
+        }
+
+        jokerUtilise = true;
+    }
+
+    private async Task UtiliserJokerRattrapage()
+    {
+        bool ok = await JeuService.UtiliserJokerAsync(PartieId, "Rattrapage");
+        if (!ok) return;
+
+        reponseValidee = false;
+        reponseChoisie = string.Empty;
+        messageFeedback = "Seconde chance ! Réessaie 🔁";
+        classeFeedback = "succes";
+        jokerUtilise = true;
+        DemarrerTimer();
+    }
+
+    private async Task UtiliserJokerIndice()
+    {
+        bool ok = await JeuService.UtiliserJokerAsync(PartieId, "Indice");
+        if (!ok) return;
+
+        string br = questions[indexQuestion].BonneReponse;
+        indiceAffiche = br.Length > 3 ? br.Substring(0, 3) + "..." : br.Substring(0, 1) + "...";
+        jokerUtilise = true;
+    }
+
+    // =============================================
+    // CSS
+    // =============================================
+    private string GetBadgeDifficulte() => niveauActuel switch
+    {
+        "Facile" => "badge-facile",
+        "Moyen" => "badge-moyen",
+        "Boss" => "badge-boss",
+        _ => "badge"
+    };
+
+    private string GetClasseBoutonQcm(string choix)
+    {
+        if (!reponseValidee) return "btn-qcm";
+        if (choix == questions[indexQuestion].BonneReponse) return "btn-qcm btn-qcm-correct";
+        if (choix == reponseChoisie) return "btn-qcm btn-qcm-incorrect";
+        return "btn-qcm btn-qcm-neutre";
+    }
+
+    // =============================================
+    // NETTOYAGE
+    // =============================================
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}

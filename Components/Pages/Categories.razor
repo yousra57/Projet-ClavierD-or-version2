@@ -1,0 +1,78 @@
+@page "/categories/{PartieId:int}/{Role}"
+@rendermode InteractiveServer
+@inject JeuService JeuService
+@inject NavigationManager Navigation
+@using Projet_ClavierDor.Services
+@using Projet_ClavierDor.Models
+
+<div class="accueil-container">
+
+    <h1>Choisis ta catégorie 🎯</h1>
+    <p class="sous-titre">Rôle : <strong>@Role</strong></p>
+
+    @if (!string.IsNullOrEmpty(messageRole))
+    {
+        <div class="card info-role">
+            <p>@messageRole</p>
+        </div>
+    }
+
+    @if (categories.Any())
+    {
+        <div class="categories-grid">
+            @foreach (var cat in categories)
+            {
+                <div class="card categorie-card" @onclick="() => ChoisirCategorie(cat.Id)">
+                    <h2>@cat.Titre</h2>
+                    <p>@cat.Description</p>
+                    <span class="badge">Jouer</span>
+                </div>
+            }
+        </div>
+    }
+    else 
+    {
+        <p>Chargement des catégories...</p> // Affiché pendant la récupération des données
+    }
+</div>
+
+@code {
+    // Paramètres reçus depuis l'URL
+    // Ex: /categories/1/Front
+    [Parameter] public int PartieId { get; set; }
+    [Parameter] public string Role { get; set; } = string.Empty;
+
+    // Liste des catégories récupérées depuis la base de données
+    private List<Categorie> categories = new();
+
+    // Message informatif selon le rôle du joueur
+    private string messageRole = string.Empty;
+
+    // Chargement des données au démarrage de la page
+        protected override async Task OnInitializedAsync()
+    {
+        // On récupère toutes les catégories disponibles
+        categories = await JeuService.GetCategoriesAsync();
+
+        // On affiche un message selon le rôle choisi
+        messageRole = Role switch
+        {
+        "Front" => "🎨 Développeur Front : tu peux changer une question si elle ne te convient pas !",
+        "Back" => "⚙️ Développeur Back : tu bénéficies d'un rattrapage automatique sur une mauvaise réponse !",
+        "Mobile" => "📱 Développeur Mobile : tu peux demander un indice sur une question difficile !",
+        _ => string.Empty
+        };
+
+    // Force le rafraîchissement de l'interface après chargement
+    await InvokeAsync(StateHasChanged);
+    }
+
+
+
+    // Méthode appelée quand le joueur clique sur une catégorie
+    // On redirige vers la page quiz avec les paramètres nécessaires
+    private void ChoisirCategorie(int categorieId)
+    {
+        Navigation.NavigateTo($"/quiz/{PartieId}/{categorieId}/{Role}");
+    }
+}
